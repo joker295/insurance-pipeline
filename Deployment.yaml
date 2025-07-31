@@ -16,7 +16,7 @@ spec:
 
   spec: 
     containers:
-      - name: container-HC
+      - name: container-insurance
         image: trickyknight0/insurance-app:latest
         ports : 
           - containerPort: 8081
