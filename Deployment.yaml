@@ -30,8 +30,7 @@ metadata:
 spec:
   ports:
   - port: 8081
-    targertPort: 8081
+    targetPort: 8081
   selector: 
-    matchLabels:
       project: insurance-deploy
 type: NodePort
