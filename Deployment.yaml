@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthcare-deployment 
+
+spec:
+  replicas: 2
+  selector:  
+    matchLabels:
+      project: insurance-deploy
+  
+  template: 
+    metadata:
+      labels: 
+        project: insurance-deploy
+
+  spec: 
+    containers:
+      - name: container-HC
+        image: trickyknight0/insurance-app:latest
+        ports : 
+          - containerPort: 8081
+---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: HC-service
+
+spec:
+  ports:
+  - port: 8081
+    targertPort: 8081
+  selector: 
+    matchLabels:
+      project: insurance-deploy
+type: NodePort
