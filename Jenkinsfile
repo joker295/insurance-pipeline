@@ -35,11 +35,11 @@ pipeline {
 
         stage("Create Dockerfile") {
             steps {
-                writeFile file: 'Dockerfile', text: '''
-                FROM openjdk:17
-                COPY target/*.jar app.jar
-                ENTRYPOINT ["java", "-jar", "/app.jar"]
-                '''
+                writeFile file: 'Dockerfile', text: '''\
+FROM openjdk:17
+COPY target/*.jar app.jar
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+'''
             }
         }
 
@@ -58,12 +58,11 @@ pipeline {
             }
         }
 
-         stage("Deploy to Kubernetes") {
+        stage("Deploy to Kubernetes") {
             steps {
-                sh 'sudo kubectl apply -f Deployment.yaml -n monitoring'
-                sh 'sudo kubectl get svc'
+                sh 'kubectl apply -f Deployment.yaml -n monitoring'
+                sh 'kubectl get svc -n monitoring'
             }
-        }
         }
     }
 }
