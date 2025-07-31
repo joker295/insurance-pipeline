@@ -58,18 +58,12 @@ pipeline {
             }
         }
 
-        stage("Deploy to Kubernetes") {
-            when {
-                expression { env.BRANCH_NAME == 'master' || env.GIT_BRANCH == 'master' }
-            }
+         stage("Deploy to Kubernetes") {
             steps {
-                script {
-                    kubernetesDeploy(
-                        configs: 'Deployment.yaml',
-                        kubeconfigId: 'k8sconfigpwd'
-                    )
-                }
+                sh 'sudo kubectl apply -f Deployment.yaml'
+                sh 'sudo kubectl get svc'
             }
+        }
         }
     }
 }
