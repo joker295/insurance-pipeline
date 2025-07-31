@@ -1,65 +1,75 @@
-node{
-    
-    def mavenHome
-    def mavenCMD
-    def docker
-    def dockerCMD
-    def tagName
-    
-    stage('prepare enviroment'){
-        echo 'initialize all the variables'
-        mavenHome = tool name: 'maven' , type: 'maven'
-        mavenCMD = "${mavenHome}/bin/mvn"
-        docker = tool name: 'docker' , type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
-        dockerCMD = "${docker}/bin/docker"
-        tagName="3.0"
-    }
-    
-    stage('git code checkout'){
-        try{
-            echo 'checkout the code from git repository'
-            git 'https://github.com/shubhamkushwah123/star-agile-insurance-project.git'
+pipeline {
+    agent any
+
+    stages {
+
+        stage("Build from Github") {
+            steps {
+                git url: "https://github.com/joker295/insurance-pipeline"
+            }
         }
-        catch(Exception e){
-            echo 'Exception occured in Git Code Checkout Stage'
-            currentBuild.result = "FAILURE"
-            emailext body: '''Dear All,
-            The Jenkins job ${JOB_NAME} has been failed. Request you to please have a look at it immediately by clicking on the below link. 
-            ${BUILD_URL}''', subject: 'Job ${JOB_NAME} ${BUILD_NUMBER} is failed', to: 'shubham@gmail.com'
+
+        stage("Compile the code") {
+            steps {
+                sh "mvn compile"
+            }
         }
-    }
-    
-    stage('Build the Application'){
-        echo "Cleaning... Compiling...Testing... Packaging..."
-        //sh 'mvn clean package'
-        sh "${mavenCMD} clean package"        
-    }
-    
-    stage('publish test reports'){
-        publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: '/var/lib/jenkins/workspace/Capstone-Project-Live-Demo/target/surefire-reports', reportFiles: 'index.html', reportName: 'HTML Report', reportTitles: '', useWrapperFileDirectly: true])
-    }
-    
-    stage('Containerize the application'){
-        echo 'Creating Docker image'
-        sh "${dockerCMD} build -t shubhamkushwah123/insure-me:${tagName} ."
-    }
-    
-    stage('Pushing it ot the DockerHub'){
-        echo 'Pushing the docker image to DockerHub'
-        withCredentials([string(credentialsId: 'dock-password', variable: 'dockerHubPassword')]) {
-        sh "${dockerCMD} login -u shubhamkushwah123 -p ${dockerHubPassword}"
-        sh "${dockerCMD} push shubhamkushwah123/insure-me:${tagName}"
-            
+
+        stage("Testing the Code") {
+            steps {
+                sh "mvn test"
+            }
         }
-        
-    stage('Configure and Deploy to the test-server'){
-        ansiblePlaybook become: true, credentialsId: 'ansible-key', disableHostKeyChecking: true, installation: 'ansible', inventory: '/etc/ansible/hosts', playbook: 'ansible-playbook.yml'
-    }
-        
-        
+
+        stage("Quality Assurance of the Code") {
+            steps {
+                sh "mvn pmd:pmd"
+            }
+        }
+
+        stage("Package the code") {
+            steps {
+                sh "mvn package"
+            }
+        }
+
+        stage("Create Dockerfile") {
+            steps {
+                writeFile file: 'Dockerfile', text: '''
+                FROM openjdk:17
+                COPY target/*.jar app.jar
+                ENTRYPOINT ["java", "-jar", "/app.jar"]
+                '''
+            }
+        }
+
+        stage("Build Docker Image") {
+            steps {
+                sh "docker build -t trickyknight0/insurance-app:latest ."
+            }
+        }
+
+        stage("Docker Login & Push") {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-pwd', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                    sh "echo $PASS | docker login -u $USER --password-stdin"
+                    sh "docker push trickyknight0/insurance-app:latest"
+                }
+            }
+        }
+
+        stage("Deploy to Kubernetes") {
+            when {
+                expression { env.BRANCH_NAME == 'master' || env.GIT_BRANCH == 'master' }
+            }
+            steps {
+                script {
+                    kubernetesDeploy(
+                        configs: 'Deployment.yaml',
+                        kubeconfigId: 'k8sconfigpwd'
+                    )
+                }
+            }
+        }
     }
 }
-
-
-
-
