@@ -60,7 +60,7 @@ pipeline {
 
          stage("Deploy to Kubernetes") {
             steps {
-                sh 'sudo kubectl apply -f Deployment.yaml'
+                sh 'sudo kubectl apply -f Deployment.yaml -n monitoring'
                 sh 'sudo kubectl get svc'
             }
         }
