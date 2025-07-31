@@ -60,8 +60,10 @@ ENTRYPOINT ["java", "-jar", "/app.jar"]
 
         stage("Deploy to Kubernetes") {
             steps {
-                sh 'kubectl apply --validate=false -f Deployment.yaml'
-                sh 'kubectl get svc -n monitoring'
+                withCredentials([file(credentialsId: 'kubeconfig-file', variable: 'KUBECONFIG')]) {
+                    sh 'kubectl apply -f Deployment.yaml -n monitoring'
+                    sh 'kubectl get svc -n monitoring'
+                }
             }
         }
     }
